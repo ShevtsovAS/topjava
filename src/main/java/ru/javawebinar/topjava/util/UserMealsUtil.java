@@ -3,14 +3,15 @@ package ru.javawebinar.topjava.util;
 import ru.javawebinar.topjava.model.UserMeal;
 import ru.javawebinar.topjava.model.UserMealWithExceed;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.*;
 
 public class UserMealsUtil {
     public static void main(String[] args) {
@@ -22,19 +23,14 @@ public class UserMealsUtil {
                 new UserMeal(LocalDateTime.of(2015, Month.MAY, 31, 13, 0), "Обед", 500),
                 new UserMeal(LocalDateTime.of(2015, Month.MAY, 31, 20, 0), "Ужин", 510)
         );
-        getFilteredWithExceeded(mealList, LocalTime.of(7, 0), LocalTime.of(12, 0), 2000);
+        getFilteredWithExceeded(mealList, LocalTime.of(7, 0), LocalTime.of(12, 0), 2000).forEach(System.out::println);
     }
 
     public static List<UserMealWithExceed> getFilteredWithExceeded(List<UserMeal> mealList, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
+        Map<LocalDate, Integer> caloriesSumPerDay = mealList.stream().collect(groupingBy(UserMeal::getDate, summingInt(UserMeal::getCalories)));
         return mealList.stream()
-                .collect(groupingBy(UserMeal::getDate)).values().stream()
-                .flatMap(meals -> meals.stream()
-                        .filter(meal -> TimeUtil.isBetween(meal.getTime(), startTime, endTime))
-                        .map(meal -> new UserMealWithExceed(meal.getDateTime(), meal.getDescription(), meal.getCalories(), isExceeded(meals, caloriesPerDay))))
+                .filter(meal -> TimeUtil.isBetween(meal.getTime(), startTime, endTime))
+                .map(meal -> new UserMealWithExceed(meal.getDateTime(), meal.getDescription(), meal.getCalories(), caloriesSumPerDay.get(meal.getDate()) > caloriesPerDay))
                 .collect(toList());
-    }
-
-    private static boolean isExceeded(List<UserMeal> meals, int caloriesPerDay) {
-        return meals.stream().mapToInt(UserMeal::getCalories).sum() > caloriesPerDay;
     }
 }
