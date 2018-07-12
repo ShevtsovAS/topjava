@@ -9,6 +9,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static java.util.Comparator.comparing;
+import static java.util.Comparator.reverseOrder;
+import static java.util.stream.Collectors.toList;
+import static ru.javawebinar.topjava.web.SecurityUtil.authUserId;
+
 public class InMemoryMealRepositoryImpl implements MealRepository {
     private Map<Integer, Meal> repository = new ConcurrentHashMap<>();
     private AtomicInteger counter = new AtomicInteger(0);
@@ -29,18 +34,29 @@ public class InMemoryMealRepositoryImpl implements MealRepository {
     }
 
     @Override
-    public void delete(int id) {
-        repository.remove(id);
+    public boolean delete(int id) {
+        Meal meal = repository.get(id);
+        return authUserId() == meal.getUserId() && repository.remove(id) != null;
     }
 
     @Override
     public Meal get(int id) {
-        return repository.get(id);
+        Meal meal = repository.get(id);
+        return authUserId() == meal.getUserId()
+                ? repository.get(id)
+                : null;
     }
 
     @Override
     public Collection<Meal> getAll() {
-        return repository.values();
+        return repository.values().stream()
+                .filter(this::isOwner)
+                .sorted(comparing(Meal::getDate, reverseOrder()))
+                .collect(toList());
+    }
+
+    private boolean isOwner(Meal meal) {
+        return authUserId() == meal.getUserId();
     }
 }
 

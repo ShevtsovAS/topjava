@@ -4,17 +4,17 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+import static ru.javawebinar.topjava.web.SecurityUtil.authUserId;
+
 /**
  * GKislin
  * 11.01.2015.
  */
-public class Meal {
-    private Integer id;
+public class Meal extends AbstractBaseEntity {
 
+    private final int userId;
     private final LocalDateTime dateTime;
-
     private final String description;
-
     private final int calories;
 
     public Meal(LocalDateTime dateTime, String description, int calories) {
@@ -22,10 +22,11 @@ public class Meal {
     }
 
     public Meal(Integer id, LocalDateTime dateTime, String description, int calories) {
-        this.id = id;
+        super(id);
         this.dateTime = dateTime;
         this.description = description;
         this.calories = calories;
+        this.userId = authUserId();
     }
 
     public Integer getId() {
@@ -58,6 +59,10 @@ public class Meal {
 
     public boolean isNew() {
         return id == null;
+    }
+
+    public int getUserId() {
+        return userId;
     }
 
     @Override
