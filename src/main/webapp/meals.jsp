@@ -20,6 +20,13 @@
 <section>
     <h3><a href="index.html">Home</a></h3>
     <h2>Meals</h2>
+    <form method="get" action="meals">
+        <input type="date" name="fromDate" required>
+        <input type="date" name="toDate" required>
+        <input type="time" name="startTime" required>
+        <input type="time" name="endTime" required>
+        <button type="submit">Filter</button>
+    </form>
     <a href="meals?action=create">Add Meal</a>
     <hr/>
     <table border="1" cellpadding="8" cellspacing="0">
