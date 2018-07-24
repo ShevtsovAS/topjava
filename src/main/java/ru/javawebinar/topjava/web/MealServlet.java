@@ -3,7 +3,7 @@ package ru.javawebinar.topjava.web;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import ru.javawebinar.topjava.model.Meal;
-import ru.javawebinar.topjava.web.meal.MealRestController;
+import ru.javawebinar.topjava.web.meal.MealRestJdbcController;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -23,13 +23,13 @@ import static ru.javawebinar.topjava.util.DateTimeUtil.parseLocalTime;
 public class MealServlet extends HttpServlet {
 
     private ConfigurableApplicationContext springContext;
-    private MealRestController mealController;
+    private MealRestJdbcController mealController;
 
     @Override
     public void init(ServletConfig config) throws ServletException {
         super.init(config);
         springContext = new ClassPathXmlApplicationContext("spring/spring-app.xml", "spring/spring-db.xml");
-        mealController = springContext.getBean(MealRestController.class);
+        mealController = springContext.getBean(MealRestJdbcController.class);
     }
 
     @Override

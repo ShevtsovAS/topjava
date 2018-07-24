@@ -2,6 +2,7 @@ package ru.javawebinar.topjava.repository.mock;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 import ru.javawebinar.topjava.model.Meal;
@@ -22,12 +23,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static ru.javawebinar.topjava.UserTestData.ADMIN_ID;
-import static ru.javawebinar.topjava.UserTestData.USER_ID;
+import static ru.javawebinar.topjava.model.AbstractBaseEntity.START_SEQ;
 
 @Repository
+@Qualifier("inMemory")
 public class InMemoryMealRepositoryImpl implements MealRepository {
     private static final Logger log = LoggerFactory.getLogger(InMemoryMealRepositoryImpl.class);
+    private static final int USER_ID = START_SEQ;
+    private static final int ADMIN_ID = START_SEQ + 1;
 
     // Map  userId -> (mealId-> meal)
     private Map<Integer, Map<Integer, Meal>> repository = new ConcurrentHashMap<>();
