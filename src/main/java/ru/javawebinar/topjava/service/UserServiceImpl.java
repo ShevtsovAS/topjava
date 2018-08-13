@@ -4,13 +4,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
+import ru.javawebinar.topjava.model.Role;
 import ru.javawebinar.topjava.model.User;
+import ru.javawebinar.topjava.model.UserRole;
+import ru.javawebinar.topjava.repository.RoleRepository;
 import ru.javawebinar.topjava.repository.UserRepository;
+import ru.javawebinar.topjava.repository.jdbc.JdbcUserRepositoryImpl;
 import ru.javawebinar.topjava.util.exception.NotFoundException;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
+import static java.util.stream.Collectors.*;
 import static ru.javawebinar.topjava.util.ValidationUtil.checkNotFound;
 import static ru.javawebinar.topjava.util.ValidationUtil.checkNotFoundWithId;
 
@@ -18,17 +26,23 @@ import static ru.javawebinar.topjava.util.ValidationUtil.checkNotFoundWithId;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository repository;
+    private final RoleRepository roleRepository;
 
-    @Autowired
-    public UserServiceImpl(UserRepository repository) {
+    public UserServiceImpl(@Autowired UserRepository repository, @Autowired(required = false) RoleRepository roleRepository) {
         this.repository = repository;
+        this.roleRepository = roleRepository;
     }
 
     @CacheEvict(value = "users", allEntries = true)
     @Override
+    @Transactional
     public User create(User user) {
         Assert.notNull(user, "user must not be null");
-        return repository.save(user);
+        User savedUser = repository.save(user);
+        if (repository instanceof JdbcUserRepositoryImpl) {
+            saveRoles(savedUser);
+        }
+        return savedUser;
     }
 
     @CacheEvict(value = "users", allEntries = true)
@@ -39,26 +53,61 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User get(int id) throws NotFoundException {
-        return checkNotFoundWithId(repository.get(id), id);
+        User user = checkNotFoundWithId(repository.get(id), id);
+        if (repository instanceof JdbcUserRepositoryImpl) {
+            user.setRoles(getUserRoles(user));
+        }
+        return user;
+    }
+
+    private Set<Role> getUserRoles(User user) {
+        Map<Integer, Set<Role>> roles = roleRepository.getAll().stream().collect(groupingBy(UserRole::getUserId, mapping(UserRole::getRole, toSet())));
+        return roles.get(user.getId());
     }
 
     @Override
+    @Transactional
     public User getByEmail(String email) throws NotFoundException {
         Assert.notNull(email, "email must not be null");
-        return checkNotFound(repository.getByEmail(email), "email=" + email);
+        User savedUser = checkNotFound(repository.getByEmail(email), "email=" + email);
+        if (repository instanceof JdbcUserRepositoryImpl) {
+            savedUser.setRoles(getUserRoles(savedUser));
+        }
+        return savedUser;
     }
 
     @Cacheable("users")
     @Override
+    @Transactional
     public List<User> getAll() {
-        return repository.getAll();
+        List<User> users = repository.getAll();
+        if (repository instanceof JdbcUserRepositoryImpl) {
+            users.forEach(user -> user.setRoles(getUserRoles(user)));
+        }
+        return users;
     }
 
     @CacheEvict(value = "users", allEntries = true)
     @Override
+    @Transactional
     public void update(User user) {
         Assert.notNull(user, "user must not be null");
-        checkNotFoundWithId(repository.save(user), user.getId());
+        User savedUser = checkNotFoundWithId(repository.save(user), user.getId());
+        if (repository instanceof JdbcUserRepositoryImpl) {
+            saveRoles(savedUser);
+        }
+    }
+
+    private void saveRoles(User savedUser) {
+        roleRepository.save(savedUser.getRoles()
+                .stream()
+                .map(role -> {
+                    UserRole userRole = new UserRole();
+                    userRole.setUserId(savedUser.getId());
+                    userRole.setRole(role);
+                    return userRole;
+                })
+                .collect(toSet()));
     }
 
     @Override
