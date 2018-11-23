@@ -37,4 +37,8 @@ public class UserTestData {
     public static ResultMatcher contentJson(User expected) {
         return content().json(writeIgnoreProps(expected, "registered"));
     }
+
+    // just for test 1
+    // just for test 2
+    // just for test 3
 }
